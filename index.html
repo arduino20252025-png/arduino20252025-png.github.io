@@ -1,11 +1,246 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>arduino smart farm</title>
+  <meta charset="UTF-8">
+  <title>Arduino DHT11 Example</title>
+  <style>
+    .code-box {
+      border: 2px solid #444;       /* border for the box */
+      border-radius: 8px;           /* rounded corners */
+      background-color: #f5f5f5;    /* light gray background */
+      padding: 15px;                /* inner spacing */
+      font-family: monospace;       /* monospace font for code */
+      overflow-x: auto;             /* horizontal scroll if line is too long */
+    }
+  </style>
 </head>
 <body>
-    <h1>hello world</h1>
+  <h2>smartfarm</h2>
+  <h3></h3>
+  <div class="code-box">
+    <pre><code>
+
+    </code></pre>
+  </div>
+
+  <h3>1) 센서 값 읽기 (아날로그값 확인)</h3>
+  <div class="code-box">
+    <pre><code>
+        // STEP 1: Read raw analog value from soil sensor
+
+        const int SOIL_A_PIN = A0;
+
+        void setup() {
+        Serial.begin(9600);              // Open Serial Monitor at 9600 baud
+        pinMode(SOIL_A_PIN, INPUT);      // Analog input
+        }
+
+        void loop() {
+        int raw = analogRead(SOIL_A_PIN);  // 0~1023
+        // Some sensors return higher value when DRY, some when WET.
+        // Check your module's behavior by touching it with water.
+        Serial.print("Soil raw: ");
+        Serial.println(raw);
+        delay(500);
+        }
+
+    </code></pre>
+  </div>
+
+  <h3>2) 기준값(임계값) 잡기 + 간단한 평활화</h3>
+  <div class="code-box">
+    <pre><code>
+        // STEP 2: Smoothing (moving average) + threshold test
+
+        const int SOIL_A_PIN2 = A0;
+        const int WINDOW = 10;        // moving average window size
+        int buf[WINDOW];
+        int idx = 0;
+        long sumVal = 0;
+
+        int thresholdDry = 600;       // <- adjust after observing raw values
+
+        void setup() {
+        Serial.begin(9600);
+        for (int i = 0; i < WINDOW; i++) {
+            buf[i] = analogRead(SOIL_A_PIN2);
+            sumVal += buf[i];
+        }
+        }
+
+        void loop() {
+        // Update moving average
+        sumVal -= buf[idx];
+        int v = analogRead(SOIL_A_PIN2);
+        buf[idx] = v;
+        sumVal += v;
+        idx = (idx + 1) % WINDOW;
+
+        int avg = sumVal / WINDOW;
+
+        Serial.print("Avg: ");
+        Serial.print(avg);
+        Serial.print("  | State: ");
+        if (avg > thresholdDry) {
+            Serial.println("DRY");
+        } else {
+            Serial.println("WET");
+        }
+        delay(300);
+        }
+
+    </code></pre>
+  </div>
+
+  <h3>3) 릴레이로 펌프 ON/OFF (히스테리시스 적용)</h3>
+  <div class="code-box">
+    <pre><code>
+        // STEP 3: Relay control with hysteresis
+
+        const int SOIL_PIN = A0;
+        const int RELAY_PIN = 7;        // Relay IN pin (active LOW for many modules)
+
+        const int WINDOW3 = 10;
+        int buf3[WINDOW3];
+        int i3 = 0;
+        long sum3 = 0;
+
+        // Hysteresis thresholds (adjust to your sensor)
+        int DRY_ON  = 650;   // if avg >= DRY_ON  -> turn pump ON
+        int WET_OFF = 550;   // if avg <= WET_OFF -> turn pump OFF
+
+        bool pumpOn = false; // current pump state
+
+        void setup() {
+        Serial.begin(9600);
+        pinMode(RELAY_PIN, OUTPUT);
+        digitalWrite(RELAY_PIN, HIGH); // HIGH=OFF for active-LOW relay modules
+
+        // initialize moving average
+        for (int i = 0; i < WINDOW3; i++) {
+            buf3[i] = analogRead(SOIL_PIN);
+            sum3 += buf3[i];
+        }
+        }
+
+        void loop() {
+        // moving average
+        sum3 -= buf3[i3];
+        int v = analogRead(SOIL_PIN);
+        buf3[i3] = v;
+        sum3 += v;
+        i3 = (i3 + 1) % WINDOW3;
+        int avg = sum3 / WINDOW3;
+
+        // Hysteresis control
+        if (!pumpOn && avg >= DRY_ON) {
+            pumpOn = true;
+            // Active LOW relay: LOW = ON
+            digitalWrite(RELAY_PIN, LOW);
+            Serial.println("Pump: ON");
+        } else if (pumpOn && avg <= WET_OFF) {
+            pumpOn = false;
+            digitalWrite(RELAY_PIN, HIGH);
+            Serial.println("Pump: OFF");
+        }
+
+        Serial.print("Avg: ");
+        Serial.print(avg);
+        Serial.print("  | Pump: ");
+        Serial.println(pumpOn ? "ON" : "OFF");
+
+        delay(300);
+        }
+
+    </code></pre>
+  </div>
+
+  <h3>4) 안전장치: 최대 가동 시간 + 쿨다운</h3>
+  <div class="code-box">
+    <pre><code>
+        // STEP 4: Safety - max run time & cooldown
+
+        const int SOIL_PIN4 = A0;
+        const int RELAY_PIN4 = 7;
+
+        const int WINDOW4 = 10;
+        int buf4[WINDOW4];
+        int idx4 = 0;
+        long sum4 = 0;
+
+        int DRY_ON4  = 650;
+        int WET_OFF4 = 550;
+
+        bool pumpOn4 = false;
+
+        // Safety timing
+        unsigned long pumpStartMs = 0;
+        const unsigned long MAX_RUN_MS = 10UL * 1000UL;   // max 10s run (example)
+        unsigned long lastPumpOffMs = 0;
+        const unsigned long COOLDOWN_MS = 15UL * 1000UL;  // wait 15s before next ON
+
+        void setup() {
+        Serial.begin(9600);
+        pinMode(RELAY_PIN4, OUTPUT);
+        digitalWrite(RELAY_PIN4, HIGH); // OFF initially
+        for (int i = 0; i < WINDOW4; i++) {
+            buf4[i] = analogRead(SOIL_PIN4);
+            sum4 += buf4[i];
+        }
+        }
+
+        void loop() {
+        // moving average
+        sum4 -= buf4[idx4];
+        int v = analogRead(SOIL_PIN4);
+        buf4[idx4] = v;
+        sum4 += v;
+        idx4 = (idx4 + 1) % WINDOW4;
+        int avg = sum4 / WINDOW4;
+
+        unsigned long now = millis();
+
+        // If pump is ON, enforce max run time
+        if (pumpOn4 && (now - pumpStartMs >= MAX_RUN_MS)) {
+            pumpOff();
+            Serial.println("Pump: OFF (max run reached)");
+        }
+
+        // Hysteresis + Cooldown logic
+        if (!pumpOn4) {
+            bool cooldownOver = (now - lastPumpOffMs >= COOLDOWN_MS);
+            if (cooldownOver && avg >= DRY_ON4) {
+            pumpOn();
+            Serial.println("Pump: ON");
+            }
+        } else {
+            if (avg <= WET_OFF4) {
+            pumpOff();
+            Serial.println("Pump: OFF (soil wet)");
+            }
+        }
+
+        Serial.print("Avg: ");
+        Serial.print(avg);
+        Serial.print(" | Pump: ");
+        Serial.println(pumpOn4 ? "ON" : "OFF");
+
+        delay(200);
+        }
+
+        void pumpOn() {
+        pumpOn4 = true;
+        pumpStartMs = millis();
+        digitalWrite(RELAY_PIN4, LOW);  // active LOW relay
+        }
+
+        void pumpOff() {
+        pumpOn4 = false;
+        lastPumpOffMs = millis();
+        digitalWrite(RELAY_PIN4, HIGH);
+        }
+
+    </code></pre>
+  </div>
 </body>
 </html>
