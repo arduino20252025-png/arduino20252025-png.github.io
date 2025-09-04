@@ -1,248 +1,153 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Arduino DHT11 Example</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Farm — Soil Moisture-Based Automatic Irrigation (Current Scope)</title>
   <style>
-    .code-box {
-      border: 2px solid #444;       /* border for the box */
-      border-radius: 8px;           /* rounded corners */
-      background-color: #f5f5f5;    /* light gray background */
-      padding: 15px;                /* inner spacing */
-      font-family: monospace;       /* monospace font for code */
-      overflow-x: auto;             /* horizontal scroll if line is too long */
-    }
+    :root { --bg:#0b1220; --fg:#e6eef9; --muted:#a8b3c7; --accent:#5cc8ff; --card:#121b2d; --line:#23304a; --good:#21cfa7; --warn:#ffb454; --bad:#ff6b6b; }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1730);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans KR",Arial,sans-serif}
+    header{position:sticky;top:0;z-index:10;backdrop-filter:blur(6px);background:rgba(11,18,32,.6);border-bottom:1px solid var(--line)}
+    .wrap{max-width:980px;margin:0 auto;padding:18px 20px}
+    h1{margin:0;font-size:clamp(20px,3vw,28px)}
+    .grid{display:grid;gap:16px}
+    main{max-width:980px;margin:0 auto;padding:20px;display:grid;gap:18px}
+    section{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:18px}
+    h2{margin:0 0 10px}
+    h3{margin:12px 0 8px;color:var(--muted)}
+    ul{margin:8px 0 0 18px}
+    .kv{display:grid;grid-template-columns:140px 1fr;gap:6px}
+    .kv .k{color:var(--muted)}
+    .callout{border:1px solid var(--line);background:#0d1a2b;padding:12px;border-radius:12px}
+    .good{border-left:4px solid var(--good)}
+    .warn{border-left:4px solid var(--warn)}
+    .bad{border-left:4px solid var(--bad)}
+    pre,code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace}
+    pre{background:#0e1526;border:1px solid var(--line);padding:14px;border-radius:12px;overflow:auto}
+    table{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}
+    th{background:#152037;color:var(--muted)}
+    .small{color:var(--muted);font-size:13px}
+    .btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
   </style>
 </head>
 <body>
-  <h2>smartfarm</h2>
-  <h3>Smart Farm Architecture</h3>
-  <div>
-    <img src="architecture.png" alt="architecture"
-    style="width:750px; height:500px; display:block;">
-  </div>
+  <header>
+    <div class="wrap">
+      <h1>Smart Farm — Soil Moisture-Based Automatic Irrigation (Current Scope)</h1>
+      <p class="small">This document summarizes the <strong>currently implemented functionality</strong>: "Soil moisture sensing → Water pump control via relay" in a single standalone HTML file.</p>
+    </div>
+  </header>
 
-  <h3>1) Reading sensor values ​​(checking analog values)</h3>
-  <div class="code-box">
-    <pre><code>
-        // STEP 1: Read raw analog value from soil sensor
+  <main>
+    <section id="scope">
+      <h2>1. Scope</h2>
+      <div class="kv">
+        <div class="k">Input (Sensor)</div><div>Soil Moisture Sensor (Analog)</div>
+        <div class="k">Output (Control)</div><div>Relay Module (Tongling/Songle) → Water Pump ON/OFF</div>
+        <div class="k">Logic</div><div>Activate pump if below threshold (e.g., 70%), deactivate if above</div>
+      </div>
+    </section>
 
-        const int SOIL_A_PIN = A0;
+    <section id="wiring">
+      <h2>2. Hardware Wiring</h2>
+      <table>
+        <thead><tr><th>Module</th><th>Pins</th><th>Arduino</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Soil Moisture Sensor (Analog)</td><td>VCC / GND / AOUT</td><td>5V / GND / A0</td><td>Beware of corrosion & water damage</td></tr>
+          <tr><td>Relay Module</td><td>VCC / GND / IN</td><td>5V / GND / D7 (example)</td><td>Some modules are <em>LOW-active</em></td></tr>
+          <tr><td>Water Pump</td><td>COM / NO</td><td>Connect relay in series with external power's + line (e.g., 5V/12V)</td><td>Check current rating</td></tr>
+        </tbody>
+      </table>
+      <div class="callout good"><strong>Tip:</strong> Separate MCU and pump power, but <u>share the GND</u>. Also check for back-EMF protection (diode or internal circuit).</div>
+    </section>
 
-        void setup() {
-        Serial.begin(9600);              // Open Serial Monitor at 9600 baud
-        pinMode(SOIL_A_PIN, INPUT);      // Analog input
-        }
+    <section id="code">
+      <h2>3. Pump Control Example Code (Current Working Version)</h2>
+      <p class="small">Comments are written in English. Assumes the relay is <em>LOW-active</em>.</p>
+      <pre><code>// Arduino example: Soil moisture → Pump control via relay
+int sensorPin = A0;    // Soil moisture sensor (analog)
+int relayPin  = 7;     // Tongling relay IN
 
-        void loop() {
-        int raw = analogRead(SOIL_A_PIN);  // 0~1023
-        // Some sensors return higher value when DRY, some when WET.
-        // Check your module's behavior by touching it with water.
-        Serial.print("Soil raw: ");
-        Serial.println(raw);
-        delay(500);
-        }
+void setup() {
+  pinMode(relayPin, OUTPUT);
+  Serial.begin(9600);
+  digitalWrite(relayPin, HIGH); // Relay OFF initially (safety)
+}
 
-    </code></pre>
-  </div>
+void loop() {
+  int raw = analogRead(sensorPin);          // 0~1023
+  int moisture = map(raw, 1023, 0, 0, 100); // Map to percentage (wet→low raw)
 
-  <h3>2) Setting the reference value (threshold) + simple smoothing</h3>
-  <div class="code-box">
-    <pre><code>
-        // STEP 2: Smoothing (moving average) + threshold test
+  Serial.print("Moisture: ");
+  Serial.print(moisture);
+  Serial.println(" %");
 
-        const int SOIL_A_PIN2 = A0;
-        const int WINDOW = 10;        // moving average window size
-        int buf[WINDOW];
-        int idx = 0;
-        long sumVal = 0;
+  if (moisture <= 70) {
+    digitalWrite(relayPin, LOW);   // Relay ON → Pump ON
+  } else {
+    digitalWrite(relayPin, HIGH);  // Relay OFF → Pump OFF
+  }
 
-        int thresholdDry = 600;       // <- adjust after observing raw values
+  delay(1000); // Check every 1s
+}
+</code></pre>
+      <div class="callout warn"><strong>Warning:</strong> Some sensors give higher values when wet. In such cases, reverse the <code>map()</code> or the threshold condition.</div>
+    </section>
 
-        void setup() {
-        Serial.begin(9600);
-        for (int i = 0; i < WINDOW; i++) {
-            buf[i] = analogRead(SOIL_A_PIN2);
-            sumVal += buf[i];
-        }
-        }
+    <section id="tuning">
+      <h2>4. Parameter Tuning</h2>
+      <ul>
+        <li><strong>Threshold</strong>: Default is 70%. Adjust based on real field moisture levels (dry/normal/wet)</li>
+        <li><strong>Hysteresis</strong>: e.g., ON at ≤70%, OFF at ≥75% → prevents frequent toggling</li>
+        <li><strong>Minimum Run Time</strong>: e.g., guarantee 5–10 seconds → protect pump from rapid cycling</li>
+      </ul>
+      <pre><code>// Hysteresis & minimum ON-time (snippet)
+const int ON_TH  = 70; // turn ON at ≤70
+const int OFF_TH = 75; // turn OFF at ≥75
+unsigned long onStarted = 0;
+bool pump = false;
 
-        void loop() {
-        // Update moving average
-        sumVal -= buf[idx];
-        int v = analogRead(SOIL_A_PIN2);
-        buf[idx] = v;
-        sumVal += v;
-        idx = (idx + 1) % WINDOW;
+void loop(){
+  int m = /* compute moisture */;
+  if(!pump && m <= ON_TH){
+    pump = true; onStarted = millis(); digitalWrite(relayPin, LOW);
+  }
+  if(pump && m >= OFF_TH && millis()-onStarted > 5000){
+    pump = false; digitalWrite(relayPin, HIGH);
+  }
+}
+</code></pre>
+    </section>
 
-        int avg = sumVal / WINDOW;
+    <section id="safety">
+      <h2>5. Safety Checklist</h2>
+      <ul>
+        <li>Ensure relay specs (voltage/current) and wire thickness are suitable for pump load</li>
+        <li>Recommend adding <strong>forced OFF logic</strong> using a water level sensor to prevent dry running</li>
+        <li>Immediately cut power if you notice water leaks, overheating, or unusual noise</li>
+      </ul>
+    </section>
 
-        Serial.print("Avg: ");
-        Serial.print(avg);
-        Serial.print("  | State: ");
-        if (avg > thresholdDry) {
-            Serial.println("DRY");
-        } else {
-            Serial.println("WET");
-        }
-        delay(300);
-        }
+    <section id="trouble">
+      <h2>6. Troubleshooting</h2>
+      <ul>
+        <li><strong>Relay acts in reverse</strong>: Check if it’s LOW-active, and reverse <code>HIGH/LOW</code> logic</li>
+        <li><strong>Sensor values fluctuate</strong>: Use averaging or apply software debouncing (e.g., moving average)</li>
+        <li><strong>Always ON/OFF</strong>: Check common GND, separate power, verify wiring</li>
+      </ul>
+    </section>
 
-    </code></pre>
-  </div>
-
-  <h3>3) Pump ON/OFF with relay (hysteresis applied)</h3>
-  <div class="code-box">
-    <pre><code>
-        // STEP 3: Relay control with hysteresis
-
-        const int SOIL_PIN = A0;
-        const int RELAY_PIN = 7;        // Relay IN pin (active LOW for many modules)
-
-        const int WINDOW3 = 10;
-        int buf3[WINDOW3];
-        int i3 = 0;
-        long sum3 = 0;
-
-        // Hysteresis thresholds (adjust to your sensor)
-        int DRY_ON  = 650;   // if avg >= DRY_ON  -> turn pump ON
-        int WET_OFF = 550;   // if avg <= WET_OFF -> turn pump OFF
-
-        bool pumpOn = false; // current pump state
-
-        void setup() {
-        Serial.begin(9600);
-        pinMode(RELAY_PIN, OUTPUT);
-        digitalWrite(RELAY_PIN, HIGH); // HIGH=OFF for active-LOW relay modules
-
-        // initialize moving average
-        for (int i = 0; i < WINDOW3; i++) {
-            buf3[i] = analogRead(SOIL_PIN);
-            sum3 += buf3[i];
-        }
-        }
-
-        void loop() {
-        // moving average
-        sum3 -= buf3[i3];
-        int v = analogRead(SOIL_PIN);
-        buf3[i3] = v;
-        sum3 += v;
-        i3 = (i3 + 1) % WINDOW3;
-        int avg = sum3 / WINDOW3;
-
-        // Hysteresis control
-        if (!pumpOn && avg >= DRY_ON) {
-            pumpOn = true;
-            // Active LOW relay: LOW = ON
-            digitalWrite(RELAY_PIN, LOW);
-            Serial.println("Pump: ON");
-        } else if (pumpOn && avg <= WET_OFF) {
-            pumpOn = false;
-            digitalWrite(RELAY_PIN, HIGH);
-            Serial.println("Pump: OFF");
-        }
-
-        Serial.print("Avg: ");
-        Serial.print(avg);
-        Serial.print("  | Pump: ");
-        Serial.println(pumpOn ? "ON" : "OFF");
-
-        delay(300);
-        }
-
-    </code></pre>
-  </div>
-
-  <h3>4) Safety Device: Maximum Uptime + Cooldown</h3>
-  <div class="code-box">
-    <pre><code>
-        // STEP 4: Safety - max run time & cooldown
-
-        const int SOIL_PIN4 = A0;
-        const int RELAY_PIN4 = 7;
-
-        const int WINDOW4 = 10;
-        int buf4[WINDOW4];
-        int idx4 = 0;
-        long sum4 = 0;
-
-        int DRY_ON4  = 650;
-        int WET_OFF4 = 550;
-
-        bool pumpOn4 = false;
-
-        // Safety timing
-        unsigned long pumpStartMs = 0;
-        const unsigned long MAX_RUN_MS = 10UL * 1000UL;   // max 10s run (example)
-        unsigned long lastPumpOffMs = 0;
-        const unsigned long COOLDOWN_MS = 15UL * 1000UL;  // wait 15s before next ON
-
-        void setup() {
-        Serial.begin(9600);
-        pinMode(RELAY_PIN4, OUTPUT);
-        digitalWrite(RELAY_PIN4, HIGH); // OFF initially
-        for (int i = 0; i < WINDOW4; i++) {
-            buf4[i] = analogRead(SOIL_PIN4);
-            sum4 += buf4[i];
-        }
-        }
-
-        void loop() {
-        // moving average
-        sum4 -= buf4[idx4];
-        int v = analogRead(SOIL_PIN4);
-        buf4[idx4] = v;
-        sum4 += v;
-        idx4 = (idx4 + 1) % WINDOW4;
-        int avg = sum4 / WINDOW4;
-
-        unsigned long now = millis();
-
-        // If pump is ON, enforce max run time
-        if (pumpOn4 && (now - pumpStartMs >= MAX_RUN_MS)) {
-            pumpOff();
-            Serial.println("Pump: OFF (max run reached)");
-        }
-
-        // Hysteresis + Cooldown logic
-        if (!pumpOn4) {
-            bool cooldownOver = (now - lastPumpOffMs >= COOLDOWN_MS);
-            if (cooldownOver && avg >= DRY_ON4) {
-            pumpOn();
-            Serial.println("Pump: ON");
-            }
-        } else {
-            if (avg <= WET_OFF4) {
-            pumpOff();
-            Serial.println("Pump: OFF (soil wet)");
-            }
-        }
-
-        Serial.print("Avg: ");
-        Serial.print(avg);
-        Serial.print(" | Pump: ");
-        Serial.println(pumpOn4 ? "ON" : "OFF");
-
-        delay(200);
-        }
-
-        void pumpOn() {
-        pumpOn4 = true;
-        pumpStartMs = millis();
-        digitalWrite(RELAY_PIN4, LOW);  // active LOW relay
-        }
-
-        void pumpOff() {
-        pumpOn4 = false;
-        lastPumpOffMs = millis();
-        digitalWrite(RELAY_PIN4, HIGH);
-        }
-
-    </code></pre>
-  </div>
+    <section id="next">
+      <h2>7. Next Steps (Optional)</h2>
+      <ul>
+        <li>Integrate water level sensor to prevent dry operation</li>
+        <li>Upgrade to ESP32 for Wi‑Fi and remote threshold control</li>
+        <li>Log data (moisture/pump state per hour) and visualize with simple charts</li>
+      </ul>
+      <button class="btn" onclick="window.print()">Print / Save as PDF</button>
+    </section>
+  </main>
 </body>
 </html>
-index.html
-Displaying index.html.
