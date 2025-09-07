@@ -3,57 +3,68 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1220" />
   <title>Smart Farm — Soil Moisture Based Automatic Irrigation</title>
   <style>
-    :root { 
-      --bg:#0b1220; --fg:#e6eef9; --muted:#a8b3c7; --accent:#5cc8ff; 
-      --card:#121b2d; --line:#23304a; --good:#21cfa7; 
-      --warn:#ffb454; --bad:#ff6b6b; 
+    :root{
+      --bg:#0b1220; --fg:#e6eef9; --muted:#a8b3c7; --accent:#5cc8ff;
+      --card:#121b2d; --line:#23304a; --good:#21cfa7; --warn:#ffb454; --bad:#ff6b6b;
     }
     *{box-sizing:border-box}
-    body {
-      margin:0;
-      background:linear-gradient(180deg,#0b1220,#0e1730);
-      color:var(--fg);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif
+    html,body{height:100%}
+    body{
+      margin:0; background:linear-gradient(180deg,#0b1220,#0e1730);
+      color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      line-height:1.55; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
     }
-    header {
-      position:sticky;top:0;z-index:10;
-      backdrop-filter:blur(6px);
-      background:rgba(11,18,32,.6);
-      border-bottom:1px solid var(--line)
-    }
-    .wrap{max-width:980px;margin:0 auto;padding:18px 20px}
-    h1{margin:0;font-size:clamp(20px,3vw,28px)}
-    main{max-width:980px;margin:0 auto;padding:20px;display:grid;gap:18px}
-    section{border:1px solid var(--line);background:var(--card);
-      border-radius:14px;padding:18px}
-    h2{margin:0 0 10px}
-    ul{margin:8px 0 0 18px}
-    .kv{display:grid;grid-template-columns:140px 1fr;gap:6px}
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+    :focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+    header{position:sticky; top:0; z-index:10; backdrop-filter:blur(8px);
+      background:rgba(11,18,32,.6); border-bottom:1px solid var(--line)}
+    .wrap{max-width:980px; margin:0 auto; padding:16px 20px}
+    h1{margin:0; font-size:clamp(22px,3.2vw,32px); letter-spacing:.3px}
+
+    main{max-width:980px; margin:0 auto; padding:22px 20px; display:grid; gap:18px}
+    section{border:1px solid var(--line); background:var(--card); border-radius:14px; padding:18px}
+    h2{margin:0 0 12px; font-size:clamp(18px,2.2vw,22px); color:var(--fg)}
+    p{margin:0}
+
+    /* Key-Value grid */
+    .kv{display:grid; grid-template-columns:160px 1fr; gap:8px 10px}
     .kv .k{color:var(--muted)}
-    .callout{border:1px solid var(--line);background:#0d1a2b;
-      padding:12px;border-radius:12px}
+    @media (max-width:640px){ .kv{grid-template-columns:1fr} }
+
+    /* Images block - vertically stacked (as requested) */
+    .images{display:flex; flex-direction:column; gap:12px; margin:0}
+    figure{margin:0}
+    .images img{display:block; max-width:100%; height:auto; border-radius:12px; border:1px solid var(--line)}
+    .images figcaption{color:var(--muted); font-size:12px; margin-top:6px}
+
+    .callout{border:1px solid var(--line); background:#0d1a2b; padding:12px; border-radius:12px}
     .warn{border-left:4px solid var(--warn)}
+
     pre,code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace}
-    pre{background:#0e1526;border:1px solid var(--line);padding:14px;
-      border-radius:12px;overflow:auto}
-    table{width:100%;border-collapse:collapse;border:1px solid var(--line);
-      border-radius:12px;overflow:hidden}
-    th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}
-    th{background:#152037;color:var(--muted)}
-    .btn{appearance:none;border:1px solid var(--line);background:var(--card);
-      color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
-    .images {
-      display: flex;
-      flex-direction: column; /* stacked vertically */
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .images img {
-      max-width: 100%;
-      border-radius: 12px;
-      border: 1px solid var(--line);
+    pre{background:#0e1526; border:1px solid var(--line); padding:14px; border-radius:12px; overflow:auto}
+
+    table{width:100%; border-collapse:collapse; border:1px solid var(--line); border-radius:12px; overflow:hidden}
+    th,td{padding:10px 12px; border-bottom:1px solid var(--line); text-align:left}
+    th{background:#152037; color:var(--muted); font-weight:600}
+
+    .btn{appearance:none; border:1px solid var(--line); background:var(--card); color:var(--fg);
+      padding:8px 12px; border-radius:10px; cursor:pointer; transition:transform .06s ease}
+    .btn:hover{transform:translateY(-1px)}
+
+    /* Subtle section anchors */
+    .anchor{color:var(--muted); font-size:12px; float:right}
+
+    /* Print tweaks */
+    @media print{
+      header{position:static; backdrop-filter:none; background:#fff; color:#000}
+      body{background:#fff; color:#000}
+      section{break-inside:avoid}
+      a{color:#000}
     }
   </style>
 </head>
@@ -65,38 +76,87 @@
   </header>
 
   <main>
-    <!-- Images above the Scope section -->
-    <div class="images">
-      <img src="architecture.png" alt="architecture">
-      <img src="real.jpg" alt="real thing">
-      <img src="pump.jpg" alt="video">
-      
+    <section aria-labelledby="intro-h">
+      <h2 id="intro-h">Overview</h2>
+      <p>
+        A smart farm is a system that applies sensors and communications (IoT), data analytics, and AI to agriculture
+        (crops, livestock, and aquaculture) to automatically monitor and control the environment, thereby increasing
+        productivity and quality while reducing water, energy, and labor. Among these, the automatic irrigation system is
+        designed to keep soil moisture within a hysteresis-based target range, with minimum on-time and cooldown intervals
+        enforced on the pump to prevent excessive switching and overheating. Measurement signals are smoothed (filtered)
+        to reduce noise, all state changes and sensor readings are logged over serial, and a button allows manual override
+        when necessary. Additional sensors such as temperature/humidity and flow/level can be integrated, and cloud logging
+        can be extended for remote monitoring and analysis, enabling the end-to-end loop of “measurement → decision → pump
+        control → record” to operate reliably and transparently.
+      </p>
+    </section>
 
-    </div>
+    <!-- Images above the Scope section (stacked vertically) -->
+    <section aria-labelledby="images-h">
+      <h2 id="images-h">Reference Images</h2>
+      <div class="images">
+        <figure>
+          <img src="architecture.png" alt="System architecture diagram for smart irrigation" />
+          <figcaption>Overall architecture (sensor → MCU → relay/pump → logging)</figcaption>
+        </figure>
+        <figure>
+          <img src="realthing.jpeg" alt="Actual build photo of the smart farm irrigation prototype" />
+          <figcaption>Prototype hardware setup</figcaption>
+        </figure>
+        <figure>
+          <video controls preload="metadata">
+            <source src="video.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+          <figcaption>Pump &amp; relay close-up</figcaption>
+        </figure>
 
-    <section id="scope">
-      <h2>1. Scope</h2>
-      <div class="kv">
-        <div class="k">Input (Sensing)</div><div>Soil moisture sensor (analog)</div>
-        <div class="k">Output (Control)</div><div>Relay module (Tongling/Songle) → Water pump ON/OFF</div>
-        <div class="k">Decision Logic</div><div>Pump ON when ≤ 70%, OFF otherwise</div>
+
       </div>
     </section>
 
-    <section id="wiring">
-      <h2>2. Hardware Wiring</h2>
+    <section id="scope" aria-labelledby="scope-h">
+      <h2 id="scope-h">1. Scope</h2>
+      <div class="kv" role="list">
+        <div class="k" role="listitem">Input (Sensing)</div><div>Soil moisture sensor (analog)</div>
+        <div class="k" role="listitem">Output (Control)</div><div>Relay module (Tongling/Songle) → Water pump ON/OFF</div>
+        <div class="k" role="listitem">Decision Logic</div><div>
+          Hysteresis control (e.g., ON ≤ 70%, OFF ≥ 75%) to avoid rapid toggling
+        </div>
+      </div>
+    </section>
+
+    <section id="wiring" aria-labelledby="wiring-h">
+      <h2 id="wiring-h">2. Hardware Wiring</h2>
       <table>
-        <thead><tr><th>Module</th><th>Pins</th><th>Arduino Connection</th><th>Note</th></tr></thead>
+        <thead>
+          <tr><th>Module</th><th>Pins</th><th>Arduino Connection</th><th>Note</th></tr>
+        </thead>
         <tbody>
-          <tr><td>Soil moisture sensor (analog)</td><td>VCC / GND / AOUT</td><td>5V / GND / A0</td><td>Check for water resistance and corrosion</td></tr>
-          <tr><td>Relay module</td><td>VCC / GND / IN</td><td>5V / GND / D7 (example)</td><td>Some modules are <em>LOW-active</em></td></tr>
-          <tr><td>Water pump</td><td>COM / NO</td><td>External power (5V/12V) positive line via relay</td><td>Check current capacity</td></tr>
+          <tr>
+            <td>Soil moisture sensor (analog)</td>
+            <td>VCC / GND / AOUT</td>
+            <td>5V / GND / A0</td>
+            <td>Check water resistance & corrosion; calibrate raw values</td>
+          </tr>
+          <tr>
+            <td>Relay module</td>
+            <td>VCC / GND / IN</td>
+            <td>5V / GND / D7 (example)</td>
+            <td>Many modules are <em>LOW-active</em> (invert logic if needed)</td>
+          </tr>
+          <tr>
+            <td>Water pump</td>
+            <td>COM / NO</td>
+            <td>Drive external PSU (5V/12V) positive lead via relay</td>
+            <td>Verify current capacity & wire gauge</td>
+          </tr>
         </tbody>
       </table>
     </section>
 
-    <section id="code">
-      <h2>3. Example Pump Control Code</h2>
+    <section id="code" aria-labelledby="code-h">
+      <h2 id="code-h">3. Example Pump Control Code</h2>
       <pre><code>// Arduino example: Soil moisture → Pump control via relay
 int sensorPin = A0;    // Soil moisture sensor (analog)
 int relayPin  = 7;     // Tongling relay IN
@@ -108,15 +168,16 @@ void setup() {
 }
 
 void loop() {
-  int raw = analogRead(sensorPin);          // 0~1023
-  int moisture = map(raw, 1023, 0, 0, 100); // Map to percentage (wet→low raw)
+  int raw = analogRead(sensorPin);          // 0~1023 (UNO). ESP32: 0~4095
+  int moisture = map(raw, 1023, 0, 0, 100); // Map to percentage (wet → low raw)
 
   Serial.print("Moisture: ");
   Serial.print(moisture);
   Serial.println(" %");
 
+  // Simple threshold (use hysteresis in production)
   if (moisture <= 70) {
-    digitalWrite(relayPin, LOW);   // Relay ON → Pump ON
+    digitalWrite(relayPin, LOW);   // Relay ON → Pump ON (LOW-active)
   } else {
     digitalWrite(relayPin, HIGH);  // Relay OFF → Pump OFF
   }
@@ -124,42 +185,42 @@ void loop() {
   delay(1000); // Check every 1s
 }
 </code></pre>
-      <div class="callout warn"><strong>Note:</strong> Depending on the sensor model, values may increase when wet. Adjust <code>map()</code> or threshold comparison if needed.</div>
+      <div class="callout warn"><strong>Note:</strong> Some sensors output higher values when wet; adjust <code>map()</code> or threshold logic accordingly. Consider hysteresis (e.g., ON ≤ 70%, OFF ≥ 75%) and minimum on-time for pump protection.</div>
     </section>
 
-    <section id="tuning">
-      <h2>4. Parameter Tuning</h2>
+    <section id="tuning" aria-labelledby="tuning-h">
+      <h2 id="tuning-h">4. Parameter Tuning</h2>
       <ul>
-        <li><strong>Threshold</strong>: Default 70% → adjust after checking field values</li>
-        <li><strong>Hysteresis</strong>: Example: ON at ≤ 70%, OFF at ≥ 75% → prevent frequent toggling</li>
-        <li><strong>Minimum run time</strong>: Example: 5–10 seconds → protect pump from rapid ON/OFF</li>
+        <li><strong>Threshold:</strong> Start at 70% and fine-tune after field checks</li>
+        <li><strong>Hysteresis:</strong> e.g., ON ≤ 70%, OFF ≥ 75% to prevent frequent switching</li>
+        <li><strong>Minimum run time:</strong> 5–10 s to protect the pump from rapid ON/OFF</li>
       </ul>
     </section>
 
-    <section id="safety">
-      <h2>5. Safety Checklist</h2>
+    <section id="safety" aria-labelledby="safety-h">
+      <h2 id="safety-h">5. Safety Checklist</h2>
       <ul>
-        <li>Verify relay rating (voltage/current) and wire gauge are suitable for the pump</li>
-        <li>Consider adding a water level sensor to prevent dry running</li>
-        <li>Shut down immediately if leakage, overheating, or abnormal noise occurs</li>
+        <li>Check relay rating (voltage/current) and wire gauge for the pump load</li>
+        <li>Add a water level sensor to prevent dry running</li>
+        <li>Stop immediately on leakage, overheating, or abnormal noise</li>
       </ul>
     </section>
 
-    <section id="trouble">
-      <h2>6. Troubleshooting</h2>
+    <section id="trouble" aria-labelledby="trouble-h">
+      <h2 id="trouble-h">6. Troubleshooting</h2>
       <ul>
-        <li><strong>Relay works inverted</strong>: Check LOW-active type, reverse HIGH/LOW logic</li>
-        <li><strong>Unstable sensor values</strong>: Use averaging or a moving average filter</li>
-        <li><strong>Always ON/OFF</strong>: Check common ground, separate power supply, and wiring</li>
+        <li><strong>Relay works inverted:</strong> Confirm LOW-active module; flip HIGH/LOW logic</li>
+        <li><strong>Noisy readings:</strong> Apply averaging or EMA filter; ensure solid ground</li>
+        <li><strong>Always ON/OFF:</strong> Check common ground, separate supplies, and wiring</li>
       </ul>
     </section>
 
-    <section id="next">
-      <h2>7. Next Steps (Optional)</h2>
+    <section id="next" aria-labelledby="next-h">
+      <h2 id="next-h">7. Next Steps (Optional)</h2>
       <ul>
-        <li>Integrate water level sensor</li>
-        <li>Upgrade to ESP32 for Wi-Fi and remote threshold setting</li>
-        <li>Implement logging and visualization of moisture/pump activity</li>
+        <li>Integrate water level / flow sensors</li>
+        <li>Upgrade to ESP32 for Wi‑Fi and remote threshold setting</li>
+        <li>Log and visualize moisture & pump activity (web dashboard)</li>
       </ul>
       <button class="btn" onclick="window.print()">Print / Save as PDF</button>
     </section>
