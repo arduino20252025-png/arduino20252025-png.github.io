@@ -36,11 +36,21 @@
     .kv .k{color:var(--muted)}
     @media (max-width:640px){ .kv{grid-template-columns:1fr} }
 
-    /* Images block - vertically stacked (as requested) */
-    .images{display:flex; flex-direction:column; gap:12px; margin:0}
-    figure{margin:0}
-    .images img{display:block; max-width:100%; height:auto; border-radius:12px; border:1px solid var(--line)}
+    /* Images block */
+    .images{display:flex; flex-direction:column; gap:12px; margin:0; align-items:center}
+    figure{margin:0; text-align:center}
     .images figcaption{color:var(--muted); font-size:12px; margin-top:6px}
+
+    /* 이미지/비디오 공통 크기 설정 (화면 70%) */
+    .images img,
+    .images video {
+      display:block;
+      width:70%;          /* 화면의 70% */
+      height:auto;        /* 비율 유지 */
+      border-radius:12px;
+      border:1px solid var(--line);
+      margin:0 auto;      /* 중앙 정렬 */
+    }
 
     .callout{border:1px solid var(--line); background:#0d1a2b; padding:12px; border-radius:12px}
     .warn{border-left:4px solid var(--warn)}
@@ -91,7 +101,7 @@
       </p>
     </section>
 
-    <!-- Images above the Scope section (stacked vertically) -->
+    <!-- Images above the Scope section -->
     <section aria-labelledby="images-h">
       <h2 id="images-h">Reference Images</h2>
       <div class="images">
@@ -110,8 +120,6 @@
           </video>
           <figcaption>Pump &amp; relay close-up</figcaption>
         </figure>
-
-
       </div>
     </section>
 
@@ -219,7 +227,7 @@ void loop() {
       <h2 id="next-h">7. Next Steps (Optional)</h2>
       <ul>
         <li>Integrate water level / flow sensors</li>
-        <li>Upgrade to ESP32 for Wi‑Fi and remote threshold setting</li>
+        <li>Upgrade to ESP32 for Wi-Fi and remote threshold setting</li>
         <li>Log and visualize moisture & pump activity (web dashboard)</li>
       </ul>
       <button class="btn" onclick="window.print()">Print / Save as PDF</button>
