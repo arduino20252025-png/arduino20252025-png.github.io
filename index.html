@@ -26,6 +26,14 @@
     .wrap{max-width:980px; margin:0 auto; padding:16px 20px}
     h1{margin:0; font-size:clamp(22px,3.2vw,32px); letter-spacing:.3px}
 
+    /* 제목 아래 저자/소속 스타일 */
+    .author{
+      margin-top:6px;
+      font-size:14px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+
     main{max-width:980px; margin:0 auto; padding:22px 20px; display:grid; gap:18px}
     section{border:1px solid var(--line); background:var(--card); border-radius:14px; padding:18px}
     h2{margin:0 0 12px; font-size:clamp(18px,2.2vw,22px); color:var(--fg)}
@@ -45,11 +53,11 @@
     .images img,
     .images video {
       display:block;
-      width:70%;          /* 화면의 70% */
-      height:auto;        /* 비율 유지 */
+      width:70%;
+      height:auto;
       border-radius:12px;
       border:1px solid var(--line);
-      margin:0 auto;      /* 중앙 정렬 */
+      margin:0 auto;
     }
 
     .callout{border:1px solid var(--line); background:#0d1a2b; padding:12px; border-radius:12px}
@@ -66,10 +74,8 @@
       padding:8px 12px; border-radius:10px; cursor:pointer; transition:transform .06s ease}
     .btn:hover{transform:translateY(-1px)}
 
-    /* Subtle section anchors */
     .anchor{color:var(--muted); font-size:12px; float:right}
 
-    /* Print tweaks */
     @media print{
       header{position:static; backdrop-filter:none; background:#fff; color:#000}
       body{background:#fff; color:#000}
@@ -82,6 +88,10 @@
   <header>
     <div class="wrap">
       <h1>Smart Farm — Soil Moisture Based Automatic Irrigation</h1>
+      <div class="author">
+        lee seunggyu<br>
+        Eaglebrook School
+      </div>
     </div>
   </header>
 
@@ -101,7 +111,6 @@
       </p>
     </section>
 
-    <!-- Images above the Scope section -->
     <section aria-labelledby="images-h">
       <h2 id="images-h">Reference Images</h2>
       <div class="images">
@@ -118,7 +127,7 @@
             <source src="video.mp4" type="video/mp4">
             Your browser does not support the video tag.
           </video>
-          <figcaption>Pump &amp; relay close-up</figcaption>
+          <figcaption>actual action video</figcaption>
         </figure>
       </div>
     </section>
